@@ -1,5 +1,4 @@
 import re
-import html
 import xml.etree.ElementTree as ET
 
 tree = ET.parse('data.txt')
@@ -7,10 +6,14 @@ root = tree.getroot()
 
 
 def strip_text(string, tag):
-    opening = "<%s>" % (tag)
-    closing = "</%s" % (tag)
     string = string.decode('ascii')
-    string = string.replace(opening, '').replace(closing, '')
+    opening = "<%s>" % (tag)
+    closing = "</%s>" % (tag)
+
+    if opening in string and closing in string:
+        string = string.replace(opening, '').replace(closing, '')
+    else:
+        string = ""
     return string
 
 def convert_quote(string):
@@ -31,19 +34,22 @@ def filter_string(string):
     return ' '.join(tokens)
 
 def filter_tokens(string):
-    tokens = re.split('[\W_]', string)
+    tokens = re.split('[\W]', string)
     tokens = list(filter(filter_len, tokens))
     return [token.lower() for token in tokens]
 
 def get_terms(string, tag):
+    tokens = []
     raw_txt = strip_text(ET.tostring(string), tag)
     filtered_txt = filter_string(raw_txt)
-    return filter_tokens(filtered_txt)
+    tokens = filter_tokens(filtered_txt)
+    return tokens
 
 
-#------------------------------MAIN---------------------------------
+#--------------------------------MAIN-----------------------------------
 
 def main():
+    # Phase 1: Preparing data files
     outfile1 = 'terms.txt'
     outfile2 = 'dates.txt'
     outfile3 = 'tweets.txt'
@@ -56,35 +62,37 @@ def main():
     n_str = "n-%s:%s\n"
     l_str = "l-%s:%s\n"
 
+    # Scan through each tweet record stored in 'status' tags in xml format
+    
     for status in root.iter('status'):
         id_num = status.findtext('id')       
         user = status.find('user')
         text = status.find('text')
 
-    # -------------------------TASK 1-------------------------------
+        # -------------------------TASK-1-------------------------------
         # Get text terms
         t_terms = get_terms(text, 'text')
         for term in t_terms:
             f1.write(t_str % (term, id_num))
 
         # Get name terms
-        name = user[0]
+        name = user.find('name')
         n_terms = get_terms(name, 'name')      
         for term in n_terms:
             f1.write(n_str % (term, id_num))
 
         # Get location terms
-        loc = user[1]
+        loc = user.find('location')
         l_terms = get_terms(loc, 'location')
         for term in l_terms:
             f1.write(l_str % (term, id_num))
 	    	
-    # -------------------------TASK 2-------------------------------
+        # -------------------------TASK-2-------------------------------
         date_str = "%s:%s\n"
         date = status.findtext('created_at')
         f2.write(date_str % (date, id_num))
 
-    # -------------------------TASK 3-------------------------------
+        # -------------------------TASK-3-------------------------------
         stat_str = "%s:%s\n"
         record = ET.tostring(status)
         record = record.decode('ascii').rstrip('\n')
