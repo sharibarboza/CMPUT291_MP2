@@ -7,33 +7,33 @@ root = tree.getroot()
 
 
 def strip_text(string, tag):
-	opening = "<%s>" % (tag)
-	closing = "</%s" % (tag)
-	string = string.decode('ascii')
-	string = string.replace(opening, '').replace(closing, '')
-	return string
+    opening = "<%s>" % (tag)
+    closing = "</%s" % (tag)
+    string = string.decode('ascii')
+    string = string.replace(opening, '').replace(closing, '')
+    return string
 
 def convert_quote(string):
-	return string.replace('"', " &quot ")	
+    return string.replace('"', " &quot ")	
 
 def filter_len(term):
-	return len(term) > 2
+    return len(term) > 2
 
 def filter_html(term):
-	return False if '&#' in term else True
+    return False if '&#' in term else True
 
 def filter_string(string):
-	string = convert_quote(string)
-	tokens = ' '.join(re.split(';', string))
-	string = tokens.replace(',', '')
-	tokens = string.split()
-	tokens = list(filter(filter_html, tokens))
-	return ' '.join(tokens)
+    string = convert_quote(string)
+    tokens = ' '.join(re.split(';', string))
+    string = tokens.replace(',', '')
+    tokens = string.split()
+    tokens = list(filter(filter_html, tokens))
+    return ' '.join(tokens)
 
 def filter_tokens(string):
-	tokens = re.split('[\W_]', string)
-	tokens = list(filter(filter_len, tokens))
-	return [token.lower() for token in tokens]
+    tokens = re.split('[\W_]', string)
+    tokens = list(filter(filter_len, tokens))
+    return [token.lower() for token in tokens]
 
 def get_terms(string, tag):
     raw_txt = strip_text(ET.tostring(string), tag)
@@ -47,18 +47,20 @@ def main():
     outfile2 = 'dates.txt'
     outfile3 = 'tweets.txt'
 
-    # -------------------------TASK 1-------------------------------
     f1 = open(outfile1, 'w')
+    f2 = open(outfile2, 'w')
+
     for status in root.iter('status'):
         id_num = status.findtext('id')
 
+    # -------------------------TASK 1-------------------------------
         # Get text terms
         t_str = "t-%s:%s\n"
         text = status.find('text')
         t_terms = get_terms(text, 'text')
 
         for term in t_terms:
-        	f1.write(t_str % (term, id_num))
+            f1.write(t_str % (term, id_num))
 
         user = status.find('user')
 
@@ -68,7 +70,7 @@ def main():
         n_terms = get_terms(name, 'name')
         
         for term in n_terms:
-        	f1.write(n_str % (term, id_num))
+            f1.write(n_str % (term, id_num))
 
         # Get location terms
         l_str = "l-%s:%s\n"
@@ -76,23 +78,12 @@ def main():
         l_terms = get_terms(loc, 'location')
 
         for term in l_terms:
-        	f1.write(l_str % (term, id_num))
-
-    f1.close()
+            f1.write(l_str % (term, id_num))
 	    	
-	    	
-	    
-
-
-
-
-
-
-
-
-
     # -------------------------TASK 2-------------------------------
-
+        date_str = "%s:%s\n"
+        date = status.findtext('created_at')
+        f2.write(date_str % (date, id_num))
 
 
 
@@ -106,6 +97,8 @@ def main():
 
     # -------------------------TASK 3-------------------------------
 
+    f1.close()
+    f2.close()
 
 if __name__ == "__main__":
 	main()
