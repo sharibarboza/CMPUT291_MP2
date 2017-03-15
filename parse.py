@@ -1,13 +1,10 @@
+import sys
 import re
 import xml.etree.ElementTree as ET
 
 """
 CMPUT291 Mini Project Phase 1: Preparing Data Files
 """
-
-tree = ET.parse('data.txt')
-root = tree.getroot()
-
 
 def strip_text(string, tag):
     """Removes tags from string
@@ -83,6 +80,20 @@ def get_terms(string, tag):
 #--------------------------------MAIN-----------------------------------
 
 def main():
+    
+    # Get data file from command line arguments
+    try:
+        file_name = sys.argv[1]
+        tree = ET.parse(file_name)
+    except (IndexError):
+        print("Error: No file added")
+        sys.exit()
+    except(FileNotFoundError):
+        print("Error: %s not found" % (file_name))
+        sys.exit()
+
+    root = tree.getroot()
+
     # Prepare output files and strings
     outfile1 = 'terms.txt'
     f1 = open(outfile1, 'w')
@@ -99,7 +110,7 @@ def main():
     s_str = "%s:%s\n"
 
     # Scan through each tweet record stored in 'status' tags in xml format
-    
+
     for status in root.iter('status'):
         id_num = status.findtext('id')       
         user = status.find('user')
