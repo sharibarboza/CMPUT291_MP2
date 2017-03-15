@@ -1,4 +1,3 @@
-import os
 import sys
 import re
 import xml.etree.ElementTree as ET
@@ -28,7 +27,7 @@ def convert_quote(string):
 
     :param string: text inside tag
     """
-    return string.replace('"', " &quot ")	
+    return string.replace('"', "&quot;")	
 
 def filter_len(term):
     """Ignore terms of length 2 or less
@@ -37,24 +36,13 @@ def filter_len(term):
     """
     return len(term) > 2
 
-def filter_html(term):
-    """Ignore all special characters coded as &#number
-
-    :param term: string token
-    """
-    return False if '&#' in term else True
-
 def filter_string(string):
     """Remove unwanted characters from string text
 
     :param string: tag + text
     """
     string = convert_quote(string)
-    tokens = ' '.join(re.split(';', string))
-    string = tokens.replace(',', '')
-    tokens = string.split()
-    tokens = list(filter(filter_html, tokens))
-    return ' '.join(tokens)
+    return re.sub(r'&#\d*;', '', string)
 
 def filter_tokens(string):
     """Remove unwanted terms from tokens and convert to lowercase
@@ -72,11 +60,19 @@ def get_terms(string, tag):
     :param tag: tag label
     """
     tokens = []
-    raw_txt = strip_text(ET.tostring(string), tag)
+    raw_txt = strip_text(ET.tostring(string, method='html'), tag)
     filtered_txt = filter_string(raw_txt)
     tokens = filter_tokens(filtered_txt)
     return tokens
 
+def write_out(filename, str_list):
+    """Write data produced to the output file
+
+    :param filename: name of the file to write to
+    :param str_list: all data strings to be appended to file
+    """
+    for string in str_list:
+        filename.write(string)
 
 #--------------------------------MAIN-----------------------------------
 
@@ -113,6 +109,10 @@ def main():
     f3 = open(outfile3, 'w')
     s_str = "%s:%s\n"
 
+    file1_lines = []
+    file2_lines = []
+    file3_lines = []
+
     # Scan through each tweet record stored in 'status' tags in xml format
 
     for status in root.iter('status'):
@@ -126,42 +126,49 @@ def main():
         # Get text terms
         t_terms = get_terms(text, 'text')
         for term in t_terms:
-            f1.write(t_str % (term, id_num))
+            file1_lines.append(t_str % (term, id_num))
 
         # Get name terms
         name = user.find('name')
         n_terms = get_terms(name, 'name')      
         for term in n_terms:
-            f1.write(n_str % (term, id_num))
+            file1_lines.append(n_str % (term, id_num))
 
         # Get location terms
         loc = user.find('location')
         l_terms = get_terms(loc, 'location')
         for term in l_terms:
-            f1.write(l_str % (term, id_num))
+            file1_lines.append(l_str % (term, id_num))
 
         # Produce data for dates.txt	    	
         # -------------------------------------------------------------
 
         date = status.findtext('created_at')
-        f2.write(d_str % (date, id_num))
+        file2_lines.append(d_str % (date, id_num))
 
         # Produce data for tweets.txt
         # -------------------------------------------------------------
 
-        record = ET.tostring(status)
+        record = ET.tostring(status, method='html')
         record = record.decode('ascii').rstrip('\n')
-        f3.write(s_str % (id_num, record))
+        record = convert_quote(record)
+        file3_lines.append(s_str % (id_num, record))
+
+
+    # Remove newline from last element
+    file1_lines[-1] = file1_lines[-1].rstrip('\n')
+    file2_lines[-1] = file2_lines[-1].rstrip('\n')
+    file3_lines[-1] = file3_lines[-1].rstrip('\n')
+
+    # Write to output files
+    write_out(f1, file1_lines)
+    write_out(f2, file2_lines)
+    write_out(f3, file3_lines)
 
     f1.close()
     f2.close()
     f3.close()
 
-    # Sort files and get unique rows from command line
-    os.system("sort terms.txt -u -o terms.txt")
-    os.system("sort dates.txt -u -o dates.txt")
-    os.system("sort tweets.txt -u -o tweets.txt")
-
 
 if __name__ == "__main__":
-	main()
+    main()
