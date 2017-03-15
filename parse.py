@@ -85,10 +85,13 @@ def main():
     try:
         file_name = sys.argv[1]
         tree = ET.parse(file_name)
-    except (IndexError):
+    except xml.etree.ElementTree.ParseError:
+        print("Error: Failed to parse file.")
+        sys.exit()
+    except IndexError:
         print("Error: No file added")
         sys.exit()
-    except(FileNotFoundError):
+    except FileNotFoundError:
         print("Error: %s not found" % (file_name))
         sys.exit()
 
