@@ -1,6 +1,10 @@
 import re
 import xml.etree.ElementTree as ET
 
+"""
+CMPUT291 Mini Project Phase 1: Preparing Data Files
+"""
+
 tree = ET.parse('data.txt')
 root = tree.getroot()
 
@@ -79,7 +83,7 @@ def get_terms(string, tag):
 #--------------------------------MAIN-----------------------------------
 
 def main():
-    # Phase 1: Preparing data files
+    # Prepare output files and strings
     outfile1 = 'terms.txt'
     f1 = open(outfile1, 'w')
     t_str = "t-%s:%s\n"
@@ -101,7 +105,9 @@ def main():
         user = status.find('user')
         text = status.find('text')
 
-        # -------------------------TASK-1-------------------------------
+        # Produce data for terms.txt
+        # -------------------------------------------------------------
+
         # Get text terms
         t_terms = get_terms(text, 'text')
         for term in t_terms:
@@ -118,12 +124,16 @@ def main():
         l_terms = get_terms(loc, 'location')
         for term in l_terms:
             f1.write(l_str % (term, id_num))
-	    	
-        # -------------------------TASK-2-------------------------------
+
+        # Produce data for dates.txt	    	
+        # -------------------------------------------------------------
+
         date = status.findtext('created_at')
         f2.write(d_str % (date, id_num))
 
-        # -------------------------TASK-3-------------------------------
+        # Produce data for tweets.txt
+        # -------------------------------------------------------------
+
         record = ET.tostring(status)
         record = record.decode('ascii').rstrip('\n')
         f3.write(s_str % (id_num, record))
