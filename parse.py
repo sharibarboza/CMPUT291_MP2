@@ -49,8 +49,10 @@ def write_out(filename, str_list):
     """
     for string in str_list:
         filename.write(string)
+        
 
 def main():
+    
     # Get data file from command line arguments
     try:
         file_name = sys.argv[1]
@@ -63,7 +65,6 @@ def main():
 
     f = open(file_name, 'r')
     lines = f.read()
-
     records = lines.split('<status>')
 
     # Prepare output files and strings
@@ -88,6 +89,7 @@ def main():
     for status in records[1:]:
         id_num = get_text(status, "id")
         text = get_text(status, "text")
+        # Scan through each tweet record stored in 'status' tags in xml format
 
         # Produce data for terms.txt
         # -------------------------------------------------------------
@@ -111,8 +113,10 @@ def main():
 
         # Produce data for dates.txt            
         # -------------------------------------------------------------
-
         date = get_text(status, "created_at")
+        
+        # Produce data for dates.txt	    	
+        # -------------------------------------------------------------
         file2_lines.append(d_str % (date, id_num))
 
         # Produce data for tweets.txt
