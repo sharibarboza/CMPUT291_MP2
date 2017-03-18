@@ -1,33 +1,18 @@
 import sys
 import re
-import xml.etree.ElementTree as ET
 
 """
 CMPUT291 Mini Project Phase 1: Preparing Data Files
 """
 
-def strip_text(string, tag):
-    """Removes tags from string
-
-    :param string: tag + text string
-    :param tag: tag label
-    """
-    string = string.decode('ascii')
-    opening = "<%s>" % (tag)
-    closing = "</%s>" % (tag)
-
-    if opening in string and closing in string:
-        string = string.replace(opening, '').replace(closing, '')
+def get_text(string, tag):
+    start = "<%s>" % tag
+    end = "</%s>" % tag
+    result = re.search('%s(.*)%s' % (start, end), string)
+    if result:
+        return result.group(1)
     else:
-        string = ""
-    return string
-
-def convert_quote(string):
-    """Escape html for double quotation marks
-
-    :param string: text inside tag
-    """
-    return string.replace('"', "&quot;")	
+        return ""
 
 def filter_len(term):
     """Ignore terms of length 2 or less
@@ -35,14 +20,6 @@ def filter_len(term):
     :param term: string token
     """
     return len(term) > 2
-
-def filter_string(string):
-    """Remove unwanted characters from string text
-
-    :param string: tag + text
-    """
-    string = convert_quote(string)
-    return re.sub(r'&#\d*;', '', string)
 
 def filter_tokens(string):
     """Remove unwanted terms from tokens and convert to lowercase
@@ -60,8 +37,7 @@ def get_terms(string, tag):
     :param tag: tag label
     """
     tokens = []
-    raw_txt = strip_text(ET.tostring(string, method='html'), tag)
-    filtered_txt = filter_string(raw_txt)
+    filtered_txt = re.sub(r'&#\d*;', '', string)
     tokens = filter_tokens(filtered_txt)
     return tokens
 
@@ -73,18 +49,13 @@ def write_out(filename, str_list):
     """
     for string in str_list:
         filename.write(string)
-
-#--------------------------------MAIN-----------------------------------
+        
 
 def main():
     
     # Get data file from command line arguments
     try:
         file_name = sys.argv[1]
-        tree = ET.parse(file_name)
-    except xml.etree.ElementTree.ParseError:
-        print("Error: Failed to parse file.")
-        sys.exit()
     except IndexError:
         print("Error: No file added")
         sys.exit()
@@ -92,7 +63,9 @@ def main():
         print("Error: %s not found" % (file_name))
         sys.exit()
 
-    root = tree.getroot()
+    f = open(file_name, 'r')
+    lines = f.read()
+    records = lines.split('<status>')
 
     # Prepare output files and strings
     outfile1 = 'terms.txt'
@@ -113,12 +86,10 @@ def main():
     file2_lines = []
     file3_lines = []
 
-    # Scan through each tweet record stored in 'status' tags in xml format
-
-    for status in root.iter('status'):
-        id_num = status.findtext('id')       
-        user = status.find('user')
-        text = status.find('text')
+    for status in records[1:]:
+        id_num = get_text(status, "id")
+        text = get_text(status, "text")
+        # Scan through each tweet record stored in 'status' tags in xml format
 
         # Produce data for terms.txt
         # -------------------------------------------------------------
@@ -129,31 +100,30 @@ def main():
             file1_lines.append(t_str % (term, id_num))
 
         # Get name terms
-        name = user.find('name')
+        name = get_text(status, "name")
         n_terms = get_terms(name, 'name')      
         for term in n_terms:
             file1_lines.append(n_str % (term, id_num))
 
         # Get location terms
-        loc = user.find('location')
+        loc = get_text(status, "location")
         l_terms = get_terms(loc, 'location')
         for term in l_terms:
             file1_lines.append(l_str % (term, id_num))
 
+        # Produce data for dates.txt            
+        # -------------------------------------------------------------
+        date = get_text(status, "created_at")
+        
         # Produce data for dates.txt	    	
         # -------------------------------------------------------------
-
-        date = status.findtext('created_at')
         file2_lines.append(d_str % (date, id_num))
 
         # Produce data for tweets.txt
         # -------------------------------------------------------------
 
-        record = ET.tostring(status, method='html')
-        record = record.decode('ascii').rstrip('\n')
-        record = convert_quote(record)
+        record = ("<status>" + status).rstrip('\n')
         file3_lines.append(s_str % (id_num, record))
-
 
     # Remove newline from last element
     file1_lines[-1] = file1_lines[-1].rstrip('\n')
