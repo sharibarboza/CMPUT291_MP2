@@ -28,9 +28,6 @@ for file in infiles:
             lines = "%s\n%s\n" % (key, value)
             new_records.append(lines)
 
-    # Remove newline from end
-    new_records[-1] = new_records[-1].rstrip('\n')
-
     # Write back to .txt file
     f2 = open(file, 'w')
     for record in new_records:
