@@ -1,9 +1,9 @@
 """
 Part of Phase 2
-Prepare data files for loading
-Place keys on first line and values on second line
-Remove any backslashes
-Write changed data back to file
+- Prepare data files for loading
+- Place keys on first line and values on second line
+- Remove any backslashes
+- Write changed data back to file
 """
 
 infiles = ['tweets.txt', 'dates.txt', 'terms.txt']
@@ -18,7 +18,7 @@ for file in infiles:
     # Change output of record
     for record in records:
         if len(record) > 0:
-            # Get key and value
+            # Get keys and values split by first colon
             data = record.split(':', 1)
             key, value = data[0], data[1]
 
