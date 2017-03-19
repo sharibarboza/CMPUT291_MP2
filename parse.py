@@ -63,9 +63,11 @@ def main():
         print("Error: %s not found" % (file_name))
         sys.exit()
 
+    # Get string records
     f = open(file_name, 'r')
     lines = f.read()
     records = lines.split('<status>')
+    records[-1] = records[-1].replace('\n</statuses>', '')
 
     # Prepare output files and strings
     outfile1 = 'terms.txt'
