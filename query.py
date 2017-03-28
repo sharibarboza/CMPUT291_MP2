@@ -35,8 +35,8 @@ class Query:
             self.set_termGrammar(term)
         self.set_generalTerms()
 
-        print(self.dateQuery)
-        print(self.termQuery)
+        self.results = self.get_results()
+        print(self.results) 
 
     def set_generalTerms(self):
         terms = self.query.split(' ')
@@ -100,32 +100,61 @@ class Query:
             	term = q
 
             # Check if exact or partial match
-            if len(term) > 0: 
-                self.termPrefix.append(prefix)
-                self.termQuery.append(prefix + term)
+            if len(term) > 0 and term[-1] == '%':
+                self.termPattern.append(term)
+                self.term.append(None)
+            else:
+                self.termPattern.append(None)
+                self.term.append(term)
 
-                if term[-1] == '%':
-                    self.termPattern.append(term)
-                    self.term.append(None)
-                else:
-                    self.termPattern.append(None)
-                    self.term.append(term)
+            self.termPrefix.append(prefix)
+            self.termQuery.append(prefix + term)
 
     def get_results(self):
-        tweets = self.match_dates()
-
-    def match_dates(self):
-        date_db = self.dbs['dates']
-        curs = date_db.cursor()
+        tweets = [] 
+        d_db = self.dbs['dates']
+        d_curs = d_db.cursor()
         i = 0
         for i in range(len(self.date)):
-        	date = self.date[i].encode('utf-8')
-        	prefix = self.datePrefix[i]
-        	exact = prefix[-1] ==':'
+            date = self.date[i].encode('utf-8')
+            prefix = self.datePrefix[i][-1]
+            exact = prefix ==':'
+            date_results = []
+            if exact:
+                date_results = self.match_date(d_curs, date)
+            else:
+                date_results = self.match_range(d_curs, date, prefix)
+            tweets.extend(date_results)
+
+        return sorted(set(tweets)) 
         		
-        curs.close()
+    def match_date(self, curs, date):
+        matches = [] 
+        iter = curs.set(date)
 
+        while iter:
+           result = curs.get(date, db.DB_CURRENT)
+           matches.append(result[1])
+           iter = curs.next_dup()
 
+        return matches 
+
+    def match_range(self, curs, date, prefix):
+        matches = []
+        start = curs.set_range(date)[0]
+     
+        if prefix == '>':
+            iter = curs.next_nodup() 
+        else:
+            iter = curs.first()
+
+        while iter and iter[0] != start:
+            result = curs.get(date, db.DB_CURRENT)
+            matches.append(result[1])
+            iter = curs.next()
+ 
+        return matches 
+        
         
 def main():
     # Get an instance of BerkeleyDB
