@@ -3,7 +3,7 @@ from bsddb3 import db
 
 class Query:
     """
-	alphanumeric    ::= [0-9a-zA-Z_]
+    alphanumeric    ::= [0-9a-zA-Z_]
     date            ::= year '/' month '/' day
     datePrefix      ::= 'date' (':' | '>' | '<')
     dateQuery       ::= dataPrefix date
@@ -31,12 +31,22 @@ class Query:
         self.query = query
 
         self.set_dateGrammar()
-
         for term in self.t_prefixes:
             self.set_termGrammar(term)
+        self.set_generalTerms()
 
         print(self.dateQuery)
         print(self.termQuery)
+
+    def set_generalTerms(self):
+        terms = self.query.split(' ')
+        terms = list(filter(lambda x: ':' not in x, terms)) 
+        
+        for term in terms:
+            self.term.append(term)
+            self.termPrefix.append(None)
+            self.termPattern.append(None)
+            self.termQuery.append(term)
 
     def set_dateGrammar(self):
         q = self.query
@@ -51,12 +61,9 @@ class Query:
             while q[index] not in self.d_prefixes and index < len(q):
 	            index += 1
             prefix = 'date' + q[index]
-            self.datePrefix.append(prefix)
 
 	        # Get the date string
             index += 1
-            while q[index] == ' ':
-	            index += 1      	
             q = q[index:]
             index = q.find(' ')
 
@@ -66,8 +73,10 @@ class Query:
             else:
                 date = q
 
-            # Get the date query altogether       
-            self.dateQuery.append(prefix + date)
+            if len(date) > 0 and date.count('/') == 2:
+                self.date.append(date)
+                self.datePrefix.append(prefix)
+                self.dateQuery.append(prefix + date)
 
     def set_termGrammar(self, prefix):
         q = self.query
@@ -77,30 +86,45 @@ class Query:
             index = q.find(prefix)
             if index < 0:
             	break
-            self.termPrefix.append(prefix)
             q = q[index:]
 
             # Get the term string
             index = q.index(':') + 1
-            while q[index] == ' ':
-        	    index += 1
             q = q[index:]
 
             index = q.find(' ')
-            term = ""
+            term = q[:index] if index >= 0 else q 
             if index >= 0:
                 term = q[:index]
             else:
             	term = q
 
             # Check if exact or partial match
-            if term[-1] == '%':
-            	self.termPattern.append(term)
-            else:
-            	self.term.append(term)
+            if len(term) > 0: 
+                self.termPrefix.append(prefix)
+                self.termQuery.append(prefix + term)
 
-            # Get the term query altogether
-            self.termQuery.append(prefix + term)
+                if term[-1] == '%':
+                    self.termPattern.append(term)
+                    self.term.append(None)
+                else:
+                    self.termPattern.append(None)
+                    self.term.append(term)
+
+    def get_results(self):
+        tweets = self.match_dates()
+
+    def match_dates(self):
+        date_db = self.dbs['dates']
+        curs = date_db.cursor()
+        i = 0
+        for i in range(len(self.date)):
+        	date = self.date[i].encode('utf-8')
+        	prefix = self.datePrefix[i]
+        	exact = prefix[-1] ==':'
+        		
+        curs.close()
+
 
         
 def main():
