@@ -111,51 +111,80 @@ class Query:
             self.termQuery.append(prefix + term)
 
     def get_results(self):
-        tweets = [] 
+        tweets = []
         d_db = self.dbs['dates']
-        d_curs = d_db.cursor()
-        i = 0
-        for i in range(len(self.date)):
-            date = self.date[i].encode('utf-8')
-            prefix = self.datePrefix[i][-1]
-            exact = prefix ==':'
-            date_results = []
-            if exact:
-                date_results = self.match_date(d_curs, date)
-            else:
-                date_results = self.match_range(d_curs, date, prefix)
-            tweets.extend(date_results)
+        d_curs1 = d_db.cursor()
+        d_curs2 = d_db.cursor()
 
-        return sorted(set(tweets)) 
+        i = 0
+
+        if len(self.date) > 1 and any('date:' in date for date in self.dateQuery):
+            return tweets
+
+        prefix = self.datePrefix[0][-1]
+        exact = prefix ==':'
+
+        date_results = set()
+        if exact:
+            date_results = self.match_date(d_curs1, self.date[0])
+        else:
+            date_results = self.match_range(d_curs1, d_curs2)
+        tweets.extend(date_results)
+
+        d_curs1.close()
+        d_curs2.close()
+        return sorted(set(tweets))
         		
     def match_date(self, curs, date):
-        matches = [] 
+        matches = set()
+        date = date.encode('utf-8')
         iter = curs.set(date)
 
         while iter:
            result = curs.get(date, db.DB_CURRENT)
-           matches.append(result[1])
+           matches.add(result)
            iter = curs.next_dup()
 
-        return matches 
+        return matches
 
-    def match_range(self, curs, date, prefix):
-        matches = []
-        start = curs.set_range(date)[0]
+    def match_range(self, curs1, curs2):
+        min_date, max_date = self.find_range()
+        matches = set()
+        start = curs1.set_range(min_date)[0]
      
-        if prefix == '>':
-            iter = curs.next_nodup() 
+        if min_date is not None:
+        	iter = curs1.next_nodup()
         else:
-            iter = curs.first()
+        	iter = curs1.first()
 
-        while iter and iter[0] != start:
-            result = curs.get(date, db.DB_CURRENT)
-            matches.append(result[1])
-            iter = curs.next()
+        if max_date is None:
+        	max_date = curs2.last()
+
+        while iter and iter[0] != max_date:
+            result = curs1.get(db.DB_CURRENT)
+            matches.add(result)
+            iter = curs1.next()
  
         return matches 
-        
-        
+
+    def find_range(self):
+        min_date = None
+        max_date = None
+
+        for i in range(len(self.date)):
+            date = self.date[i].encode('utf-8')
+            prefix = self.datePrefix[i][-1]
+
+            if prefix == '<':
+                if max_date is None or date > max_date:
+                    max_date = date
+            else:
+                if min_date is None or date < min_date:
+                    min_date = date
+
+        return min_date, max_date
+
+
 def main():
     # Get an instance of BerkeleyDB
     db_dict = {}
