@@ -141,11 +141,35 @@ class Query:
         for i in range(len(self.term)):
             term = self.term[i]
             prefix = self.termPrefix[i]
-            query = (prefix[0] + '-' + term)
-            results = self.match_query(t_db, query)
+            
+            if prefix is None:
+                results = self.match_general(t_db, term)
+            else:
+                query = (prefix[0] + '-' + term)
+                results = self.match_query(t_db, query)
+
             tweets = self.add_results(tweets, results)
-        
+
         return tweets
+
+    def match_general(self, q_db, term):
+        matches = set()
+        prefixes = ['l-', 'n-', 't-']
+
+        for i in range(3):
+            curs = q_db.cursor()
+            query_str = prefixes[i] + term
+            query = query_str.encode('utf-8')
+            iter = curs.set(query)
+
+            while iter:
+                result = curs.get(db.DB_CURRENT)
+                matches.add(result[1])
+                iter = curs.next_dup()
+
+            curs.close()
+     
+        return matches
         
     def match_query(self, q_db, query):
         matches = set()
