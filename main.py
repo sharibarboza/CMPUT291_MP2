@@ -350,18 +350,16 @@ def display_record(tw_db, tw_id):
     text = get_text(record, 'text')
     rt_count = get_text(record, 'retweet_count')
     name = get_text(record, 'name')
-    location = get_text(record, 'location')
+    loc = get_text(record, 'location')
     desc = get_text(record, 'description')
     url = get_text(record, 'url')
 
-    print("Record ID: " + tw_id.decode('utf-8'))     
-    print("Created at: " + date)
-    print("Text: " + text)
-    print("Retweet count: " + rt_count)
-    print("Name: " + name)
-    print("Location: " + location)
-    print("Description: " + desc)
-    print("Url: " + url)
+    print("Record ID: " + tw_id.decode('utf-8'))    
+    print("Created at: %s\nText: %s\nRetweet count: %s" % (date, text, rt_count)) 
+    print("Name: %s\nLocation: %s\nDescription: %s\nUrl: %s" % (name, loc, desc, url)) 
+
+
+#-------------------------------------------------------------------------------
 
 
 def main():
