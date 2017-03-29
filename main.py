@@ -15,8 +15,16 @@ class Query:
     query           ::= expression | (expression whitespace)+
     """
     
-    def __init__(self, db_dict, query):
-        self.dbs = db_dict
+    def __init__(self, dates_db, terms_db, query):
+        """
+        Class for parsing queries and returning matches from the Berkeley
+        database.
+
+        :param db_dict: contains the dates, terms, and tweets databases
+        :param query: query string from user input
+        """
+        self.dates_db = dates_db
+        self.terms_db = terms_db 
         self.t_prefixes = ['text:', 'name:', 'location:']
         self.d_prefixes = [':', '<', '>']
 
@@ -30,17 +38,19 @@ class Query:
         self.expression = []
         self.query = query
 
+        # Break down/parse query
         self.set_dateGrammar()
         for term in self.t_prefixes:
             self.set_termGrammar(term)
-        self.set_generalTerms()
+        self.set_generalTerms() 
 
-        self.results = self.get_results()
-        print(self.results)
+    #---------------------------------------------------------------------------
 
     def set_generalTerms(self):
+        """Look for keyword terms with no prefix"""
         terms = self.query.split(' ')
         filtered_terms = []
+
         for term in terms:
             if all(prefix not in term for prefix in self.d_prefixes):
                 filtered_terms.append(term)
@@ -51,7 +61,10 @@ class Query:
             self.termPattern.append(None)
             self.termQuery.append(term)
 
+    #---------------------------------------------------------------------------
+
     def set_dateGrammar(self):
+        """Parse the query to set the date, date prefix, and date query"""
         q = self.query
         index = 0
         while index < len(q):
@@ -81,7 +94,13 @@ class Query:
                 self.datePrefix.append(prefix)
                 self.dateQuery.append(prefix + date)
 
+    #---------------------------------------------------------------------------
+
     def set_termGrammar(self, prefix):
+        """Parse the query and set the term, term prefix, and term query
+
+        :param prefix: either location:, name: or text: 
+        """
         q = self.query
         index = 0
         while index < len(q):
@@ -113,13 +132,24 @@ class Query:
             self.termPrefix.append(prefix)
             self.termQuery.append(prefix + term)
 
+    #---------------------------------------------------------------------------
+
     def add_results(self, tweets, results):
+        """Gets the new results and compares them with the previous results
+
+        Takes the intersection of two resulting matches
+        :param tweets: results found already
+        :param results: new incoming results to be added or intersected
+        """
         if tweets is None:
             return results
         else:
             return tweets.intersection(results)
 
+    #---------------------------------------------------------------------------
+
     def get_results(self):
+        """Gets the final results based on the use query"""
         tweets = None
         
         # Match records to date query
@@ -133,9 +163,13 @@ class Query:
 
         return sorted(tweets)
 
+    #---------------------------------------------------------------------------
+
     def get_terms(self):
+        """Match tweet records to term queries with the prefix location:, name:,
+        or text: or to all of them if term query has no prefix
+        """
         tweets = None
-        t_db = self.dbs['terms']
 
         i = 0
         for i in range(len(self.term)):
@@ -143,21 +177,30 @@ class Query:
             prefix = self.termPrefix[i]
             
             if prefix is None:
-                results = self.match_general(t_db, term)
+                # If term query has no term prefix
+                results = self.match_general(term)
             else:
+                # If term query has a prefix
                 query = (prefix[0] + '-' + term)
-                results = self.match_query(t_db, query)
+                results = self.match_query(self.terms_db, query)
 
             tweets = self.add_results(tweets, results)
 
         return tweets
 
-    def match_general(self, q_db, term):
+    #---------------------------------------------------------------------------
+
+    def match_general(self, term):
+        """Check if term matches any records with the prefix location:, name:,
+        and text:
+
+        :param term: keyword with no prefix
+        """ 
         matches = set()
         prefixes = ['l-', 'n-', 't-']
 
         for i in range(3):
-            curs = q_db.cursor()
+            curs = self.terms_db.cursor()
             query_str = prefixes[i] + term
             query = query_str.encode('utf-8')
             iter = curs.set(query)
@@ -166,12 +209,19 @@ class Query:
                 result = curs.get(db.DB_CURRENT)
                 matches.add(result[1])
                 iter = curs.next_dup()
-
             curs.close()
      
         return matches
+
+    #---------------------------------------------------------------------------
         
     def match_query(self, q_db, query):
+        """Match keywords with an exact match or terms with prefixes with a ':'
+        Used for both term and date queries
+
+        :param q_db: dates or term database
+        :param query: potential key found in database
+        """ 
         matches = set()
         curs = q_db.cursor()
         query = query.encode('utf-8')
@@ -185,55 +235,72 @@ class Query:
         curs.close()
         return matches
 
-    def get_dates(self):
-        tweets = set()
-        d_db = self.dbs['dates']
+    #---------------------------------------------------------------------------
 
+    def get_dates(self):
+        """Matches tweet records to date query. Date query can be an exact or
+        range query
+        """
+        tweets = set()
+
+        # Multiple exact date matches always return no results
         if len(self.date) > 1 and any('date:' in date for date in self.dateQuery):
             return tweets
 
+        # ':', '<' or '>'
         prefix = self.datePrefix[0][-1]
         exact = prefix ==':'
 
         if exact:
-            tweets = self.match_query(d_db, self.date[0])
+            tweets = self.match_query(self.dates_db, self.date[0])
         else:
-            tweets = self.match_range(d_db)
+            tweets = self.match_range()
 
         return tweets
 
-    def match_range(self, d_db):
-        curs1 = d_db.cursor()
-        curs2 = d_db.cursor()
+    #---------------------------------------------------------------------------
 
+    def match_range(self):
+        """Match range date queries"""
+        curs1 = self.dates_db.cursor()
+        curs2 = self.dates_db.cursor()
+
+        # Get start and end of date range
         min_date, max_date = self.find_range()
         matches = set()
-        start = curs1.set_range(min_date)[0]
+
+        # Set cursor 1 to start at minimum date
+        start = curs1.set_range(min_date)
      
         if min_date is not None:
-            iter = curs1.next_nodup()
+            iter = curs1.next_nodup() 
         else:
-            iter = curs1.first()
+            iter = curs1.first()      
 
         if max_date is None:
-            max_date = curs2.last()
+            max_date = curs2.last()   
 
-        while iter and iter[0] != max_date:
+        # If start is None, no more dates exist in database
+        while start and iter and iter[0] != max_date:
             result = curs1.get(db.DB_CURRENT)
             matches.add(result[1])
             iter = curs1.next()
 
         curs1.close()
         curs2.close()    
- 
         return matches 
 
+    #---------------------------------------------------------------------------
+
     def find_range(self):
+        """Get the minimum and maximum date to find date range"""
         min_date = None
         max_date = None
 
         for i in range(len(self.date)):
             date = self.date[i].encode('utf-8')
+            
+            # '<' or '>'
             prefix = self.datePrefix[i][-1]
 
             if prefix == '<':
@@ -245,25 +312,28 @@ class Query:
 
         return min_date, max_date
 
+    #---------------------------------------------------------------------------
 
 def main():
-    # Get an instance of BerkeleyDB
-    db_dict = {}
-
+    # Dates database with date as key, tweet record as value
     database1 = db.DB()
     database1.open('da.idx')
-    db_dict['dates'] = database1
 
+    # Terms database with term query as key, tweet record as value
     database2 = db.DB()
     database2.open('te.idx')
-    db_dict['terms'] = database2
 
+    # Tweets database with tweet record as key, tweet info as value
     database3 = db.DB()
     database3.open('tw.idx')
-    db_dict['tweets'] = database3
 
+    # Get user query input
     query = input("Enter query: ").lower()
-    q = Query(db_dict, query)
+
+    # Parse the query and return tweet records that match query
+    q = Query(database1, database2, query)
+    results = q.get_results()
+    print(results)
 
     database1.close()
     database2.close()
