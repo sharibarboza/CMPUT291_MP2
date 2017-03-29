@@ -1,6 +1,6 @@
 from bsddb3 import db
 
-from parse import get_text
+from phase1 import get_text
 
 class Query:
     """
