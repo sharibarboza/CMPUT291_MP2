@@ -65,7 +65,7 @@ class Query:
 	            index += 1
             prefix = 'date' + q[index]
 
-	        # Get the date string
+            # Get the date string
             index += 1
             q = q[index:]
             index = q.find(' ')
@@ -124,7 +124,7 @@ class Query:
         
         # Match records to date query
         if len(self.date) > 0:
-        	tweets = self.get_dates()
+            tweets = self.get_dates()
 
         # Match records to term query
         if len(self.term) > 0:
@@ -187,12 +187,12 @@ class Query:
         start = curs1.set_range(min_date)[0]
      
         if min_date is not None:
-        	iter = curs1.next_nodup()
+            iter = curs1.next_nodup()
         else:
-        	iter = curs1.first()
+            iter = curs1.first()
 
         if max_date is None:
-        	max_date = curs2.last()
+            max_date = curs2.last()
 
         while iter and iter[0] != max_date:
             result = curs1.get(db.DB_CURRENT)
