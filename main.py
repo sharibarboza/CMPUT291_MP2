@@ -1,5 +1,7 @@
 from bsddb3 import db
 
+from parse import get_text
+
 class Query:
     """
     alphanumeric    ::= [0-9a-zA-Z_]
@@ -338,6 +340,30 @@ class Query:
 
     #---------------------------------------------------------------------------
 
+
+def display_record(tw_db, tw_id):
+    curs = tw_db.cursor()
+    record = curs.set(tw_id)[1].decode('utf-8')
+    curs.close()
+
+    date = get_text(record, 'created_at')
+    text = get_text(record, 'text')
+    rt_count = get_text(record, 'retweet_count')
+    name = get_text(record, 'name')
+    location = get_text(record, 'location')
+    desc = get_text(record, 'description')
+    url = get_text(record, 'url')
+
+    print("Record ID: " + tw_id.decode('utf-8'))     
+    print("Created at: " + date)
+    print("Text: " + text)
+    print("Retweet count: " + rt_count)
+    print("Name: " + name)
+    print("Location: " + location)
+    print("Description: " + desc)
+    print("Url: " + url)
+
+
 def main():
     # Dates database with date as key, tweet record as value
     database1 = db.DB()
@@ -357,7 +383,18 @@ def main():
     # Parse the query and return tweet records that match query
     q = Query(database1, database2, query)
     results = q.get_results()
-    print(results)
+    
+    # Output the results
+    border = '-' * 100 
+    for result in results:
+        print(border)
+        display_record(database3, result)
+    if len(results) > 0:
+        print(border)
+    if len(results) == 1:
+        print("1 record found.")
+    else:
+        print("%d records found." % (len(results))) 
 
     database1.close()
     database2.close()
