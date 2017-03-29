@@ -377,23 +377,29 @@ def main():
     database3.open('tw.idx')
 
     # Get user query input
-    query = input("Enter query: ").lower()
+    again = 'y'
+    affirmatives = ['y', 'yes', '1'] 
+    while again in affirmatives: 
+        query = input("Enter query: ").lower()
 
-    # Parse the query and return tweet records that match query
-    q = Query(database1, database2, query)
-    results = q.get_results()
+        # Parse the query and return tweet records that match query
+        q = Query(database1, database2, query)
+        results = q.get_results()
     
-    # Output the results
-    border = '-' * 100 
-    for result in results:
-        print(border)
-        display_record(database3, result)
-    if len(results) > 0:
-        print(border)
-    if len(results) == 1:
-        print("1 record found.")
-    else:
-        print("%d records found." % (len(results))) 
+        # Output the results
+        border = '-' * 100 
+        for result in results:
+            print(border)
+            display_record(database3, result)
+    
+        if len(results) > 0:
+            print(border)
+        if len(results) == 1:
+            print("1 record found.")
+        else:
+            print("%d records found." % (len(results))) 
+
+        again = input("Do you want to make another query? y/n: ").lower()
 
     database1.close()
     database2.close()
