@@ -1,22 +1,21 @@
-CMPUT 291 Mini Project 2
+## CMPUT 291 Mini Project 2
 
-How to test and upload your own data files:
-
+# How to test and upload your own data files:
 See example record file: example.txt
 
-Phase 1: Preparing Data Files
+# Phase 1: Preparing Data Files
 Command line:
 ```
 python3 phase1.py example.txt
 ```
 
-Phase 2: Building Indexes
+# Phase 2: Building Indexes
 Command line:
 ```
 python3 phase2.py
 ```
 
-Phase 3: Data Retrieval
+# Phase 3: Data Retrieval
 Command line:
 ```
 python3 main.py
