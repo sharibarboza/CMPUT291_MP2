@@ -1,8 +1,9 @@
 # CMPUT 291 Mini Project 2
 
 ### How to test your own data files:
-Create data files in XML format
-See example record file: example.txt
+Create data files in XML format. See example record file: example.txt
+
+
 
 #### Phase 1: Preparing Data Files
 Reads tweets records from the data file and outputs dates.txt, terms.txt, and tweets.txt
