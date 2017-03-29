@@ -1,5 +1,6 @@
 from bsddb3 import db
 
+from parse import get_text
 
 class Query:
     """
@@ -56,11 +57,10 @@ class Query:
                 filtered_terms.append(term)
  
         for term in filtered_terms:
-            self.term.append(term)
             self.termPrefix.append(None)
-            self.termPattern.append(None)
             self.termQuery.append(term)
-
+            self.set_pattern(term)
+            
     #---------------------------------------------------------------------------
 
     def set_dateGrammar(self):
@@ -121,16 +121,23 @@ class Query:
             else:
             	term = q
 
-            # Check if exact or partial match
-            if len(term) > 0 and term[-1] == '%':
-                self.termPattern.append(term)
-                self.term.append(None)
-            else:
-                self.termPattern.append(None)
-                self.term.append(term)
-
+            self.set_pattern(term)
             self.termPrefix.append(prefix)
             self.termQuery.append(prefix + term)
+
+    #---------------------------------------------------------------------------
+
+    def set_pattern(self, term):
+        """Set the term and term pattern
+
+        :param term: term from query
+        """
+        if len(term) > 0 and term[-1] == '%':
+            self.termPattern.append(True)
+            self.term.append(term[:-1])
+        else:
+            self.termPattern.append(False)
+            self.term.append(term)
 
     #---------------------------------------------------------------------------
 
@@ -175,14 +182,15 @@ class Query:
         for i in range(len(self.term)):
             term = self.term[i]
             prefix = self.termPrefix[i]
+            partial = self.termPattern[i]
             
             if prefix is None:
                 # If term query has no term prefix
-                results = self.match_general(term)
+                results = self.match_general(term, partial)
             else:
                 # If term query has a prefix
                 query = (prefix[0] + '-' + term)
-                results = self.match_query(self.terms_db, query)
+                results = self.match_query(self.terms_db, query, partial)
 
             tweets = self.add_results(tweets, results)
 
@@ -190,11 +198,12 @@ class Query:
 
     #---------------------------------------------------------------------------
 
-    def match_general(self, term):
+    def match_general(self, term, partial=False):
         """Check if term matches any records with the prefix location:, name:,
         and text:
 
         :param term: keyword with no prefix
+        :param partial: True if partial, False if exact
         """ 
         matches = set()
         prefixes = ['l-', 'n-', 't-']
@@ -202,35 +211,52 @@ class Query:
         for i in range(3):
             curs = self.terms_db.cursor()
             query_str = prefixes[i] + term
-            query = query_str.encode('utf-8')
-            iter = curs.set(query)
+            key = query_str.encode('utf-8')
 
-            while iter:
+            if partial:
+                iter = curs.set_range(key)
+            else:
+                iter = curs.set(key)
+
+            while iter and term in iter[0].decode('utf-8'):
                 result = curs.get(db.DB_CURRENT)
                 matches.add(result[1])
-                iter = curs.next_dup()
+  
+                if partial:
+                    iter = curs.next()
+                else:
+                    iter = curs.next_dup()
             curs.close()
-     
+
         return matches
 
     #---------------------------------------------------------------------------
         
-    def match_query(self, q_db, query):
+    def match_query(self, q_db, query, partial=False):
         """Match keywords with an exact match or terms with prefixes with a ':'
         Used for both term and date queries
 
         :param q_db: dates or term database
         :param query: potential key found in database
+        :param partial: True if partial, False if exact
         """ 
         matches = set()
         curs = q_db.cursor()
-        query = query.encode('utf-8')
-        iter = curs.set(query)
-        
-        while iter:
+        key = query.encode('utf-8')
+
+        if partial:
+            iter = curs.set_range(key)
+        else:
+            iter = curs.set(key)
+
+        while iter and query in iter[0].decode('utf-8'):
             result = curs.get(db.DB_CURRENT)
             matches.add(result[1])
-            iter = curs.next_dup()
+ 
+            if partial:
+                iter = curs.next()
+            else:
+                iter = curs.next_dup()
 
         curs.close()
         return matches
@@ -314,6 +340,28 @@ class Query:
 
     #---------------------------------------------------------------------------
 
+
+def display_record(tw_db, tw_id):
+    curs = tw_db.cursor()
+    record = curs.set(tw_id)[1].decode('utf-8')
+    curs.close()
+
+    date = get_text(record, 'created_at')
+    text = get_text(record, 'text')
+    rt_count = get_text(record, 'retweet_count')
+    name = get_text(record, 'name')
+    loc = get_text(record, 'location')
+    desc = get_text(record, 'description')
+    url = get_text(record, 'url')
+
+    print("Record ID: " + tw_id.decode('utf-8'))    
+    print("Created at: %s\nText: %s\nRetweet count: %s" % (date, text, rt_count)) 
+    print("Name: %s\nLocation: %s\nDescription: %s\nUrl: %s" % (name, loc, desc, url)) 
+
+
+#-------------------------------------------------------------------------------
+
+
 def main():
     # Dates database with date as key, tweet record as value
     database1 = db.DB()
@@ -333,7 +381,18 @@ def main():
     # Parse the query and return tweet records that match query
     q = Query(database1, database2, query)
     results = q.get_results()
-    print(results)
+    
+    # Output the results
+    border = '-' * 100 
+    for result in results:
+        print(border)
+        display_record(database3, result)
+    if len(results) > 0:
+        print(border)
+    if len(results) == 1:
+        print("1 record found.")
+    else:
+        print("%d records found." % (len(results))) 
 
     database1.close()
     database2.close()
