@@ -1,6 +1,6 @@
 from bsddb3 import db
 
-from parse import get_text
+from phase1 import get_text
 
 class Query:
     """
@@ -350,13 +350,14 @@ def display_record(tw_db, tw_id):
     text = get_text(record, 'text')
     rt_count = get_text(record, 'retweet_count')
     name = get_text(record, 'name')
-    loc = get_text(record, 'location')
-    desc = get_text(record, 'description')
+    location = get_text(record, 'location')
+    description = get_text(record, 'description')
     url = get_text(record, 'url')
 
     print("Record ID: " + tw_id.decode('utf-8'))    
-    print("Created at: %s\nText: %s\nRetweet count: %s" % (date, text, rt_count)) 
-    print("Name: %s\nLocation: %s\nDescription: %s\nUrl: %s" % (name, loc, desc, url)) 
+    print("Created at: %s\nText: %s\nRetweet count: %s" % (date, text, rt_count))
+    print("Name: %s\nLocation: %s" % (name, location))
+    print("Description: %s\nUrl: %s" % (description, url)) 
 
 
 #-------------------------------------------------------------------------------

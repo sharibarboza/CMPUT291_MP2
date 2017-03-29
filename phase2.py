@@ -1,11 +1,11 @@
-"""
-Part of Phase 2
-- Prepare data files for loading
-- Place keys on first line and values on second line
-- Remove any backslashes
-- Write changed data back to file
-"""
+import os
 
+# Sort files and get unique rows from command line
+os.system("sort terms.txt -u -o terms.txt")
+os.system("sort dates.txt -u -o dates.txt")
+os.system("sort tweets.txt -u -o tweets.txt")
+
+# Break files
 infiles = ['tweets.txt', 'dates.txt', 'terms.txt']
 
 for file in infiles:
@@ -13,7 +13,7 @@ for file in infiles:
     f1 = open(file, 'r')
     records = f1.read().split('\n')
     f1.close()
-    new_records = [] 
+    new_records = []
 
     # Change output of record
     for record in records:
@@ -24,7 +24,7 @@ for file in infiles:
 
             # Remove backslashes
             if '\\' in value:
-            	value = value.replace('\\', '\\\\')
+                value = value.replace('\\', '\\\\')
             lines = "%s\n%s\n" % (key, value)
             new_records.append(lines)
 
@@ -33,3 +33,13 @@ for file in infiles:
     for record in new_records:
         f2.write(record)
     f2.close()
+
+# Create indexes in Berekley DB
+os.system('db_load -f tweets.txt -T -t hash tw.idx')
+#os.system('db_dump -p tw.idx')
+
+os.system('db_load -f terms.txt -c duplicates=1 -T -t btree te.idx')
+#os.system('db_dump -p te.idx')
+  
+os.system('db_load -f dates.txt -c duplicates=1 -T -t btree da.idx')
+#os.system('db_dump -p da.idx')
