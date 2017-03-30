@@ -21,7 +21,8 @@ class Query:
         Class for parsing queries and returning matches from the Berkeley
         database.
 
-        :param db_dict: contains the dates, terms, and tweets databases
+        :param dates_db: dates database with date as key
+	:param terms_db: terms database with prefix/term as key
         :param query: query string from user input
         """
         self.dates_db = dates_db
@@ -233,7 +234,7 @@ class Query:
     #---------------------------------------------------------------------------
         
     def match_query(self, q_db, query, partial=False):
-        """Match keywords with an exact match or terms with prefixes with a ':'
+        """Match keywords with an exact match or terms with a colon in the prefix
         Used for both term and date queries
 
         :param q_db: dates or term database
@@ -287,7 +288,7 @@ class Query:
     #---------------------------------------------------------------------------
 
     def match_range(self):
-        """Match range date queries"""
+        """Match range date queries. Range queries are not inclusive."""
         curs1 = self.dates_db.cursor()
         curs2 = self.dates_db.cursor()
 
