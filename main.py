@@ -51,11 +51,7 @@ class Query:
     def set_generalTerms(self):
         """Look for keyword terms with no prefix"""
         terms = self.query.split(' ')
-        filtered_terms = []
-
-        for term in terms:
-            if ':' not in term:
-                filtered_terms.append(term)
+	terms = [term for term in terms if ':' not in term]
  
         for term in filtered_terms:
             self.termPrefix.append(None)
