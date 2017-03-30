@@ -54,7 +54,7 @@ class Query:
         filtered_terms = []
 
         for term in terms:
-            if all(prefix not in term for prefix in self.d_prefixes):
+            if ':' not in term:
                 filtered_terms.append(term)
  
         for term in filtered_terms:
