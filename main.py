@@ -2,6 +2,55 @@ from bsddb3 import db
 
 from phase1 import get_text
 
+class Node:
+
+    def __init__(self, data=None, next_node=None):
+        self.data = data
+        self.next_node = next_node
+
+    def get_data(self):
+        return self.data
+
+    def get_next(self):
+        return self.next_node
+
+    def set_next(self, node):
+        self.next_node = node
+
+    def set_data(self, data):
+        self.data = data
+
+
+class LinkedList:
+
+    def __init__(self, head=None):
+        self.head = head
+
+    def insert(self, data):
+        code = data['code']
+        current = self.head
+        previous = None
+
+        while current != None:
+            cur_data = current.get_data()
+            other_code = cur_data['code']
+
+            if code <= other_code:
+                break
+            else: 
+                previous = current
+                current = current.get_next() 
+         
+        new_node = Node(data, current)
+        if previous is None:
+            self.head = new_node            
+        else:
+            previous.set_next(new_node)
+
+    def get_head(self):
+        return self.head 
+
+
 class Query:
     """
     alphanumeric    ::= [0-9a-zA-Z_]
@@ -22,7 +71,7 @@ class Query:
         database.
 
         :param dates_db: dates database with date as key
-	:param terms_db: terms database with prefix/term as key
+	      :param terms_db: terms database with prefix/term as key
         :param query: query string from user input
         """
         self.dates_db = dates_db
@@ -30,168 +79,114 @@ class Query:
         self.t_prefixes = ['text:', 'name:', 'location:']
         self.d_prefixes = [':', '<', '>']
 
-        self.date = []
-        self.datePrefix = []
-        self.dateQuery = []
-        self.term = []
-        self.termPrefix = []
-        self.termPattern = []
-        self.termQuery = []
-        self.expression = []
-        self.query = query
-
-        # Break down/parse query
-        self.set_dateGrammar()
-        for term in self.t_prefixes:
-            self.set_termGrammar(term)
-        self.set_generalTerms() 
-
-    #---------------------------------------------------------------------------
-
-    def set_generalTerms(self):
-        """Look for keyword terms with no prefix"""
-        terms = self.query.split(' ')
-	terms = [term for term in terms if ':' not in term]
- 
-        for term in filtered_terms:
-            self.termPrefix.append(None)
-            self.termQuery.append(term)
-            self.set_pattern(term)
-            
-    #---------------------------------------------------------------------------
-
-    def set_dateGrammar(self):
-        """Parse the query to set the date, date prefix, and date query"""
-        q = self.query
-        index = 0
-        while index < len(q):
-            # Get the date prefix
-            index = q.find('date', index)
-            if index < 0:
-                break
-            
-            index += 4
-            while q[index] not in self.d_prefixes and index < len(q):
-	            index += 1
-            prefix = 'date' + q[index]
-
-            # Get the date string
-            index += 1
-            q = q[index:]
-            index = q.find(' ')
-
-            date = ""
-            if index >= 0:
-                date = q[:index]
-            else:
-                date = q
-
-            if len(date) > 0 and date.count('/') == 2:
-                self.date.append(date)
-                self.datePrefix.append(prefix)
-                self.dateQuery.append(prefix + date)
-
-    #---------------------------------------------------------------------------
-
-    def set_termGrammar(self, prefix):
-        """Parse the query and set the term, term prefix, and term query
-
-        :param prefix: either location:, name: or text: 
-        """
-        q = self.query
-        index = 0
-        while index < len(q):
-            # Get the term prefix
-            index = q.find(prefix)
-            if index < 0:
-            	break
-            q = q[index:]
-
-            # Get the term string
-            index = q.index(':') + 1
-            q = q[index:]
-
-            index = q.find(' ')
-            term = q[:index] if index >= 0 else q 
-            if index >= 0:
-                term = q[:index]
-            else:
-            	term = q
-
-            self.set_pattern(term)
-            self.termPrefix.append(prefix)
-            self.termQuery.append(prefix + term)
-
-    #---------------------------------------------------------------------------
-
-    def set_pattern(self, term):
-        """Set the term and term pattern
-
-        :param term: term from query
-        """
-        if len(term) > 0 and term[-1] == '%':
-            self.termPattern.append(True)
-            self.term.append(term[:-1])
-        else:
-            self.termPattern.append(False)
-            self.term.append(term)
-
-    #---------------------------------------------------------------------------
-
-    def add_results(self, tweets, results):
-        """Gets the new results and compares them with the previous results
-
-        Takes the intersection of two resulting matches
-        :param tweets: results found already
-        :param results: new incoming results to be added or intersected
-        """
-        if tweets is None:
-            return results
-        else:
-            return tweets.intersection(results)
+        self.terms = query.split()
+        self.linked_list = LinkedList()
+        self.results = None 
+        self.sort_terms()
 
     #---------------------------------------------------------------------------
 
     def get_results(self):
-        """Gets the final results based on the use query"""
-        tweets = None
-        
-        # Match records to date query
-        if len(self.date) > 0:
-            tweets = self.get_dates()
+        current = self.linked_list.get_head()
 
-        # Match records to term query
-        if len(self.term) > 0:
-            results = self.get_terms()
-            tweets = self.add_results(tweets, results)
+        while current != None:
+            data = current.get_data()
+            query = data['term']
+            prefix = data['prefix']
 
-        return sorted(tweets)
+            if prefix is None or 'date' not in prefix:
+                records = self.get_terms(query, prefix)
+            else:
+                records = self.get_dates(query, prefix[-1])
+
+            if len(records) == 0:
+                self.results = set()
+                break
+            elif self.results is None:
+                self.results = records
+            elif len(self.results) == 0:
+                break 
+            else:
+                self.results = self.results.intersection(records)
+
+            current = current.get_next()
+
+        return sorted(self.results) 
 
     #---------------------------------------------------------------------------
 
-    def get_terms(self):
+    def sort_terms(self):
+        for term in self.terms:
+            prefix = None
+            mid = None
+
+            if len(term) > 0 and term[-1] == '%':
+                partial = True
+            else:
+                partial = False
+
+            if ':' in term:
+                mid = ':'
+            elif '>' in term:
+                mid = '>'
+            elif '<' in term:
+                mid = '<'
+            
+            if mid:
+                prefix, term = term.split(mid)
+            code = self.classify_term(term, prefix, mid, partial)
+
+            if prefix:
+                prefix += mid
+            data = {'code': code, 'prefix': prefix, 'term': term}
+            self.linked_list.insert(data)
+
+    #---------------------------------------------------------------------------
+
+    def classify_term(self, term, prefix, mid, partial):
+        if prefix == 'date':
+            if mid == ':':
+                return 4
+            else:
+                return 9
+        elif partial:
+            if prefix == 'name':
+                return 6
+            elif prefix == 'location':
+                return 7
+            elif prefix == 'text':
+                return 8
+            else:
+                return 10
+        else:
+            if prefix == 'name':
+                return 1
+            elif prefix == 'location':
+                return 2
+            elif prefix == 'text':
+                return 3
+            else:
+                return 5 
+        
+    #---------------------------------------------------------------------------
+
+    def get_terms(self, term, prefix):
         """Match tweet records to term queries with the prefix location:, name:,
         or text: or to all of them if term query has no prefix
         """
-        tweets = None
-
-        i = 0
-        for i in range(len(self.term)):
-            term = self.term[i]
-            prefix = self.termPrefix[i]
-            partial = self.termPattern[i]
+        if len(term) > 0 and term[-1] == '%':
+            partial = True
+            term = term[:-1]
+        else:
+            partial = False 
             
-            if prefix is None:
-                # If term query has no term prefix
-                results = self.match_general(term, partial)
-            else:
-                # If term query has a prefix
-                query = (prefix[0] + '-' + term)
-                results = self.match_query(self.terms_db, query, partial)
-
-            tweets = self.add_results(tweets, results)
-
-        return tweets
+        if prefix is None:
+            # If term query has no term prefix
+            return self.match_general(term, partial)
+        else:
+            # If term query has a prefix
+            query = (prefix[0] + '-' + term)
+            return self.match_query(self.terms_db, query, partial)
 
     #---------------------------------------------------------------------------
 
@@ -260,80 +255,37 @@ class Query:
 
     #---------------------------------------------------------------------------
 
-    def get_dates(self):
+    def get_dates(self, date, mid):
         """Matches tweet records to date query. Date query can be an exact or
         range query
         """
-        tweets = set()
-
-        # Multiple exact date matches always return no results
-        if len(self.date) > 1 and any('date:' in date for date in self.dateQuery):
-            return tweets
-
-        # ':', '<' or '>'
-        prefix = self.datePrefix[0][-1]
-        exact = prefix ==':'
-
-        if exact:
-            tweets = self.match_query(self.dates_db, self.date[0])
+        if mid == ':': 
+            return self.match_query(self.dates_db, date)
         else:
-            tweets = self.match_range()
-
-        return tweets
+            return self.match_range(date, mid)
 
     #---------------------------------------------------------------------------
 
-    def match_range(self):
-        """Match range date queries. Range queries are not inclusive."""
+    def match_range(self, date, mid):
+        """Match range date queries"""
         curs1 = self.dates_db.cursor()
-        curs2 = self.dates_db.cursor()
-
-        # Get start and end of date range
-        min_date, max_date = self.find_range()
         matches = set()
 
-        # Set cursor 1 to start at minimum date
-        start = curs1.set_range(min_date)
-     
-        if min_date is not None:
-            iter = curs1.next_nodup() 
-        else:
-            iter = curs1.first()      
+        date = date.encode('utf-8')
+        curs1.set_range(date)
+        if mid == '<':
+            iter = curs1.first()
+        else: 
+            iter = curs1.next_nodup()
 
-        if max_date is None:
-            max_date = curs2.last()   
-
-        # If start is None, no more dates exist in database
-        while start and iter and iter[0] != max_date:
-            result = curs1.get(db.DB_CURRENT)
-            matches.add(result[1])
+        while iter: 
+            if mid == '<' and iter[0] >= date:
+                break 
+            matches.add(iter[1])
             iter = curs1.next()
 
         curs1.close()
-        curs2.close()    
         return matches 
-
-    #---------------------------------------------------------------------------
-
-    def find_range(self):
-        """Get the minimum and maximum date to find date range"""
-        min_date = None
-        max_date = None
-
-        for i in range(len(self.date)):
-            date = self.date[i].encode('utf-8')
-            
-            # '<' or '>'
-            prefix = self.datePrefix[i][-1]
-
-            if prefix == '<':
-                if max_date is None or date > max_date:
-                    max_date = date
-            else:
-                if min_date is None or date < min_date:
-                    min_date = date
-
-        return min_date, max_date
 
     #---------------------------------------------------------------------------
 
