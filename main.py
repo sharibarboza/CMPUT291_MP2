@@ -130,10 +130,7 @@ class Query:
                 break 
             current = current.get_next()
 
-        if self.results:
-            return sorted(self.results)
-        else:
-            return [] 
+        return sorted(self.results) if self.results else []
 
     #---------------------------------------------------------------------------
 
@@ -145,22 +142,15 @@ class Query:
         Term order is maintained by storing each term in a linked list.
         """
         for term in self.terms:
-            prefix = None
-            mid = None
-            word = term
-
             if len(term) > 0 and term[-1] == '%':
                 partial = True
             else:
                 partial = False
 
-            if ':' in term:
-                mid = ':'
-            elif '>' in term:
-                mid = '>'
-            elif '<' in term:
-                mid = '<'
-            
+            mid = self.find_separator(term)
+            prefix = None
+            word = term
+
             if mid:
                 prefix, word = term.split(mid)
             code = self.classify_term(word, prefix, mid, partial)
@@ -175,6 +165,21 @@ class Query:
             # Data to be stored in node
             data = {'code': code, 'prefix': prefix, 'term': word}
             self.linked_list.insert(data)
+
+    #---------------------------------------------------------------------------
+
+    def find_separator(self, term):
+        """Find whether a term has a prefix or not and whether the prefix and
+        term is separated by ':', '<', or '>'.
+        """
+        separator = None
+        if ':' in term:
+            separator = ':'
+        elif '>' in term:
+            separator = '>'
+        elif '<' in term:
+            separator = '<'
+        return separator
  
     #---------------------------------------------------------------------------
 
@@ -326,7 +331,6 @@ class Query:
         """
         curs1 = self.dates_db.cursor()
         matches = set()
-
         date = date.encode('utf-8')
         curs1.set_range(date)
 
