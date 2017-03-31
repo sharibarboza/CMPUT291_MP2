@@ -91,7 +91,7 @@ class Query:
         self.dates_db = dates_db
         self.terms_db = terms_db 
         self.t_prefixes = ['text:', 'name:', 'location:']
-        self.d_prefixes = [':', '<', '>']
+        self.d_prefixes = ['date:', 'date<', 'date>']
 
         self.terms = query.split()
         self.linked_list = LinkedList()
@@ -130,7 +130,10 @@ class Query:
                 break 
             current = current.get_next()
 
-        return sorted(self.results) 
+        if self.results:
+            return sorted(self.results)
+        else:
+            return [] 
 
     #---------------------------------------------------------------------------
 
@@ -144,6 +147,7 @@ class Query:
         for term in self.terms:
             prefix = None
             mid = None
+            word = term
 
             if len(term) > 0 and term[-1] == '%':
                 partial = True
@@ -158,15 +162,28 @@ class Query:
                 mid = '<'
             
             if mid:
-                prefix, term = term.split(mid)
-            code = self.classify_term(term, prefix, mid, partial)
+                prefix, word = term.split(mid)
+            code = self.classify_term(word, prefix, mid, partial)
 
             if prefix:
-                prefix += mid
+                if not self.valid_prefixes(prefix + mid): 
+                    prefix = None
+                    word = term
+                else:
+                    prefix += mid
 
             # Data to be stored in node
-            data = {'code': code, 'prefix': prefix, 'term': term}
+            data = {'code': code, 'prefix': prefix, 'term': word}
             self.linked_list.insert(data)
+ 
+    #---------------------------------------------------------------------------
+
+    def valid_prefixes(self, prefix):
+        """Returns True if the prefix is a valid prefix"""
+        if prefix in self.t_prefixes or prefix in self.d_prefixes:
+            return True
+        else:
+            return False
 
     #---------------------------------------------------------------------------
 
@@ -214,7 +231,7 @@ class Query:
             term = term[:-1]
         else:
             partial = False 
-            
+                    
         if prefix is None:
             # If term query has no term prefix
             return self.match_general(term, partial)
@@ -260,7 +277,7 @@ class Query:
     #---------------------------------------------------------------------------
         
     def match_query(self, q_db, query, partial=False):
-        """Match keywords with an exact match or terms with prefixes with a ':'
+        """Match keywords with an exact match or terms with a colon in the prefix
         Used for both term and date queries
 
         :param q_db: dates or term database
