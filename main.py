@@ -117,7 +117,7 @@ class Query:
                 records = self.get_dates(query, prefix[-1])
 
             if len(records) == 0:
-                # If a query term returns nothing, immediately exitt
+                # If a query term returns nothing, immediately exit
                 self.results = set()
                 break
             elif self.results is None:
