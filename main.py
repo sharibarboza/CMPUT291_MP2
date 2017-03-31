@@ -201,29 +201,31 @@ class Query:
         :param mid: either None, :, <, or >
         :param partial: True if mid is < or >
         """
+        code = 10
         if prefix == 'date':
             if mid == ':':
-                return 4
+                code = 4 
             else:
-                return 9
+                code = 9
         elif partial:
             if prefix == 'name':
-                return 6
+                code = 6
             elif prefix == 'location':
-                return 7
+                code = 7
             elif prefix == 'text':
-                return 8
+                code = 8
             else:
-                return 10
+                code = 10
         else:
             if prefix == 'name':
-                return 1
+                code = 1
             elif prefix == 'location':
-                return 2
+                code = 2
             elif prefix == 'text':
-                return 3
+                code = 3
             else:
-                return 5 
+                code = 5
+        return code 
         
     #---------------------------------------------------------------------------
 
