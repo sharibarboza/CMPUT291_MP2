@@ -5,6 +5,11 @@ from phase1 import get_text
 class Node:
 
     def __init__(self, data=None, next_node=None):
+        """Node object for linked list
+
+        :param data: dictionary containing term, prefix, and code
+        :param next_node: what current node is pointing to
+        """
         self.data = data
         self.next_node = next_node
 
@@ -17,16 +22,23 @@ class Node:
     def set_next(self, node):
         self.next_node = node
 
-    def set_data(self, data):
-        self.data = data
-
 
 class LinkedList:
 
     def __init__(self, head=None):
+        """Singly linked list consisting of nodes
+        Each node contains a one-word query term
+        """
         self.head = head
 
     def insert(self, data):
+        """Inserts a new node into the linked list based on data values
+
+        Each data dictionary contains a code that corresponds to a 
+        query term. Ensures that nodes are stored in ascending order of
+        code values.
+        :param data: dictionary with query term code
+        """
         code = data['code']
         current = self.head
         previous = None
@@ -35,6 +47,7 @@ class LinkedList:
             cur_data = current.get_data()
             other_code = cur_data['code']
 
+            # Insert new node before node with higher code value
             if code <= other_code:
                 break
             else: 
@@ -48,6 +61,7 @@ class LinkedList:
             previous.set_next(new_node)
 
     def get_head(self):
+        """Get the first node in the linked list"""
         return self.head 
 
 
@@ -70,7 +84,8 @@ class Query:
         Class for parsing queries and returning matches from the Berkeley
         database.
 
-        :param db_dict: contains the dates, terms, and tweets databases
+        :param dates_db: dates database with date as key
+        :param terms_db: terms database with term as key
         :param query: query string from user input
         """
         self.dates_db = dates_db
@@ -86,8 +101,11 @@ class Query:
     #---------------------------------------------------------------------------
 
     def get_results(self):
+        """Get the results of the query. After the order of the terms are sorted
+        into a linked list, get the results of each term and intersect them with
+        the current result matches.
+        """
         current = self.linked_list.get_head()
-
         while current != None:
             data = current.get_data()
             query = data['term']
@@ -99,15 +117,17 @@ class Query:
                 records = self.get_dates(query, prefix[-1])
 
             if len(records) == 0:
+                # If a query term returns nothing, immediately exitt
                 self.results = set()
                 break
             elif self.results is None:
                 self.results = records
-            elif len(self.results) == 0:
-                break 
             else:
                 self.results = self.results.intersection(records)
 
+            # Immediately exit if intersecting produces nothing
+            if self.results and len(self.results) == 0:
+                break 
             current = current.get_next()
 
         return sorted(self.results) 
@@ -115,6 +135,12 @@ class Query:
     #---------------------------------------------------------------------------
 
     def sort_terms(self):
+        """Sort individual query terms. Terms with prefixes/exact queries are
+        considered first because they are more likely to return smaller result
+        sets than partial/range queries.
+
+        Term order is maintained by storing each term in a linked list.
+        """
         for term in self.terms:
             prefix = None
             mid = None
@@ -137,12 +163,22 @@ class Query:
 
             if prefix:
                 prefix += mid
+
+            # Data to be stored in node
             data = {'code': code, 'prefix': prefix, 'term': term}
             self.linked_list.insert(data)
 
     #---------------------------------------------------------------------------
 
     def classify_term(self, term, prefix, mid, partial):
+        """Determine the code value for a term. The lower the return value, the
+        earlier the term query should be processed.
+
+        :param term: single keyword
+        :param prefix: either name, location, text, or date
+        :param mid: either None, :, <, or >
+        :param partial: True if mid is < or >
+        """
         if prefix == 'date':
             if mid == ':':
                 return 4
@@ -266,17 +302,24 @@ class Query:
     #---------------------------------------------------------------------------
 
     def match_range(self, date, mid):
-        """Match range date queries"""
+        """Match range date queries to find records either below/above the date
+
+        :param date: date query
+        :param mid: either < or >
+        """
         curs1 = self.dates_db.cursor()
         matches = set()
 
         date = date.encode('utf-8')
         curs1.set_range(date)
+
+        # Determine which index to start iterating at
         if mid == '<':
             iter = curs1.first()
         else: 
             iter = curs1.next_nodup()
 
+        # Iterate until the query date or the end of database
         while iter: 
             if mid == '<' and iter[0] >= date:
                 break 
