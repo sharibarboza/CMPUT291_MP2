@@ -2,6 +2,7 @@ from bsddb3 import db
 
 from phase1 import get_text
 
+
 class Node:
 
     def __init__(self, data=None, next_node=None):
@@ -43,24 +44,27 @@ class LinkedList:
         prefix1 = data['prefix']
         term1 = data['term']
         term1 = term1[:-1] if is_partial(term1) else term1
-
         current = self.head
         previous = None
 
+        # Search for a position to insert
         while current != None:
             cur_data = current.get_data()
             code2 = cur_data['code']
             prefix2 = cur_data['prefix']
             term2 = cur_data['term']
             term2 = term2[:-1] if is_partial(term2) else term2
-
+ 
+            # Check if term to be inserted is longer
             both = both_terms(prefix1, prefix2)
             if both and code1 < code2 and (len(term1) - len(term2) > 0):
                 break 
-            
+           
+            # Term not inserted here, so get next node 
             previous = current
             current = current.get_next() 
-         
+        
+        # Insert node before current node 
         new_node = Node(data, current)
         if previous is None:
             self.head = new_node            
@@ -128,13 +132,14 @@ class Query:
             query = data['term']
             prefix = data['prefix']
 
+            # Get the results from database based on query term
             if prefix is None or 'date' not in prefix:
                 records = self.get_terms(query, prefix)
             else:
                 records = self.get_dates(query, prefix[-1])
 
+            # If records returns nothing, then we're done
             if len(records) == 0:
-                # If a query term returns nothing, immediately exit
                 self.results = set()
                 break
             elif self.results is None:
@@ -164,8 +169,11 @@ class Query:
             mid = self.find_separator(term)
             word = term
 
+            # If term has a prefix
             if mid:
                 prefix, word = term.split(mid)
+
+            # Get relative position of term for linked list
             code = self.classify_term(word, prefix, mid, partial)
 
             if prefix:
@@ -258,24 +266,9 @@ class Query:
         prefixes = ['l-', 'n-', 't-']
 
         for i in range(3):
-            curs = self.terms_db.cursor()
-            query_str = prefixes[i] + term
-            key = query_str.encode('utf-8')
-
-            if partial:
-                iter = curs.set_range(key)
-            else:
-                iter = curs.set(key)
-
-            while iter and term in iter[0].decode('utf-8'):
-                result = curs.get(db.DB_CURRENT)
-                matches.add(result[1])
-  
-                if partial:
-                    iter = curs.next()
-                else:
-                    iter = curs.next_dup()
-            curs.close()
+            query = prefixes[i] + term
+            results = self.match_query(self.terms_db, query, partial)
+            matches.update(results)
 
         return matches
 
@@ -293,6 +286,7 @@ class Query:
         curs = q_db.cursor()
         key = query.encode('utf-8')
 
+        # Get starting index
         if partial:
             iter = curs.set_range(key)
         else:
@@ -301,13 +295,12 @@ class Query:
         while iter and query in iter[0].decode('utf-8'):
             result = curs.get(db.DB_CURRENT)
             matches.add(result[1])
- 
             if partial:
                 iter = curs.next()
             else:
                 iter = curs.next_dup()
-
         curs.close()
+
         return matches
 
     #---------------------------------------------------------------------------
