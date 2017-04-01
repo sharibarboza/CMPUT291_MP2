@@ -54,6 +54,7 @@ class LinkedList:
         term1 = term1[:-1] if is_partial(term1) else term1
         current = self.head
         previous = None
+        new_node = Node(data, current)
 
         # Search for a position to insert
         while current != None:
