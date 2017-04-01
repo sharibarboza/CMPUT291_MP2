@@ -83,6 +83,7 @@ class LinkedList:
 
 class Query:
     """
+    query           ::= expression | (expession whitespace)+
     alphanumeric    ::= [0-9a-zA-Z_]
     date            ::= year '/' month '/' day
     datePrefix      ::= 'date' (':' | '>' | '<')
@@ -92,7 +93,6 @@ class Query:
     termPattern     ::= alphanumeric '%'
     termQuery       ::= termPrefix? (term | termPattern)
     expression      ::= termQuery | dateQuery
-    query           ::= expression | (expression whitespace)+
     """
     
     def __init__(self, dates_db, terms_db, query):
@@ -146,7 +146,8 @@ class Query:
             if self.results and len(self.results) == 0:
                 break 
             current = current.get_next()
-        return sorted(self.results) if self.results else []
+
+        return self.results if self.results else [] 
 
     #---------------------------------------------------------------------------
 
