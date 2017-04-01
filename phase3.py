@@ -65,8 +65,13 @@ class LinkedList:
  
             # Check if term to be inserted is longer
             both = both_terms(prefix1, prefix2)
-            if both and code1 < code2 and (len(term1) - len(term2) > 0):
-                break 
+            diff = len(term1) - len(term2)
+            if both and diff > 0: 
+                break
+            elif both and diff == 0 and code1 < code2:
+                break
+            elif not both and code1 < code2:
+                break
            
             # Term not inserted here, so get next node 
             previous = current
@@ -217,15 +222,15 @@ class Query:
         :param mid: either None, :, <, or >
         :param partial: True if mid is < or >
         """
-        code = 10
+        code = 7 
         if prefix == 'date':
-            code = 8 if mid == ':' else 9
+            code = 3 if mid == ':' else 8
         elif prefix == 'name':
-            code = 5 if partial else 1
+            code = 4 if partial else 0
         elif prefix == 'location':
-            code = 6 if partial else 2
+            code = 5 if partial else 1
         elif prefix == 'text':
-            code = 7 if partial else 3 
+            code = 6 if partial else 2 
         return code 
         
     #---------------------------------------------------------------------------
@@ -402,7 +407,7 @@ def main():
         # Parse the query and return tweet records that match query
         q = Query(database1, database2, query)
         results = q.get_results()
-    
+
         # Output the results
         border = '-' * 100 
         for result in results:
