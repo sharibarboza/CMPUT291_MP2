@@ -134,8 +134,11 @@ def main():
 
     # Write to output files
     write_out(f1, file1_lines)
+    print(outfile1 + " created.")
     write_out(f2, file2_lines)
+    print(outfile2 + " created.")
     write_out(f3, file3_lines)
+    print(outfile3 + " created.")
 
     f1.close()
     f2.close()
