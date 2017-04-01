@@ -220,7 +220,7 @@ class Query:
         :param term: single keyword
         :param prefix: either name, location, text, or date
         :param mid: either None, :, <, or >
-        :param partial: True if mid is < or >
+        :param partial: True if term contains '%' 
         """
         code = 7 
         if prefix == 'date':
@@ -363,7 +363,11 @@ def both_terms(prefix1, prefix2):
 
 
 def display_record(tw_db, tw_id):
-    """Display tweet record information to the console"""
+    """Display tweet record information to the console
+
+    :param tw_db: tweets database with tweet id as key 
+    :param tw_id: record number of tweet
+    """
     curs = tw_db.cursor()
     record = curs.set(tw_id)[1].decode('utf-8')
     curs.close()

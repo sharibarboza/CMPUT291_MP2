@@ -6,6 +6,11 @@ CMPUT291 Mini Project Phase 1: Preparing Data Files
 """
 
 def get_text(string, tag):
+    """Get the string in between the specified tag.
+
+    :param string: string to be parsed
+    :param tag: label inside tag
+    """
     start = "<%s>" % tag
     end = "</%s>" % tag
     result = re.search('%s(.*)%s' % (start, end), string)
