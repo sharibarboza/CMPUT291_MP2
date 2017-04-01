@@ -2,27 +2,32 @@ from bsddb3 import db
 
 from phase1 import get_text
 
+#------------------------------------------------------------------------
 
 class Node:
 
     def __init__(self, data=None, next_node=None):
         """Node object for linked list
 
-        :param data: dictionary containing term, prefix, and code
+        :param data: dictionary containing term query data 
         :param next_node: what current node is pointing to
         """
         self.data = data
         self.next_node = next_node
 
     def get_data(self):
+        """Get the node dictionary"""
         return self.data
 
     def get_next(self):
+        """Get the next node"""
         return self.next_node
 
     def set_next(self, node):
+        """Set the next node"""
         self.next_node = node
 
+#------------------------------------------------------------------------
 
 class LinkedList:
 
@@ -31,6 +36,10 @@ class LinkedList:
         Each node contains a one-word query term
         """
         self.head = head
+
+    def get_head(self):
+        """Returns the start of the linked list"""
+        return self.head
 
     def insert(self, data):
         """Inserts a new node into the linked list based on data values
@@ -46,6 +55,7 @@ class LinkedList:
         term1 = term1[:-1] if is_partial(term1) else term1
         current = self.head
         previous = None
+        new_node = Node(data, current)
 
         # Search for a position to insert
         while current != None:
@@ -65,26 +75,12 @@ class LinkedList:
             current = current.get_next() 
         
         # Insert node before current node 
-        new_node = Node(data, current)
         if previous is None:
             self.head = new_node            
         else:
             previous.set_next(new_node)
 
-    def get_head(self):
-        """Get the first node in the linked list"""
-        return self.head
-
-
-def both_terms(prefix1, prefix2):
-    """Return True if both prefixes are not date prefixes"""
-    both = True
-    if prefix1 and 'date' in prefix1:
-        both = False
-    if prefix2 and 'date' in prefix2:
-        both = False
-    return both 
-
+#---------------------------------------------------------------------------
 
 class Query:
     """
@@ -114,9 +110,9 @@ class Query:
         self.t_prefixes = ['text:', 'name:', 'location:']
         self.d_prefixes = ['date:', 'date<', 'date>']
 
+        self.results = None
         self.terms = query.split()
         self.linked_list = LinkedList()
-        self.results = None 
         self.sort_terms()
 
     #---------------------------------------------------------------------------
@@ -343,7 +339,8 @@ class Query:
         curs1.close()
         return matches 
 
-    #---------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------
 
 
 def is_partial(term):
@@ -353,8 +350,19 @@ def is_partial(term):
     else:
         return False
 
+
+def both_terms(prefix1, prefix2):
+    """Return True if both prefixes are not date prefixes"""
+    both = True
+    if prefix1 and 'date' in prefix1:
+        both = False
+    if prefix2 and 'date' in prefix2:
+        both = False
+    return both 
+
+
 def display_record(tw_db, tw_id):
-    """Display tweet record to console"""
+    """Display tweet record information to the console"""
     curs = tw_db.cursor()
     record = curs.set(tw_id)[1].decode('utf-8')
     curs.close()
@@ -411,7 +419,6 @@ def main():
             print("1 record found.")
         else:
             print("%d records found." % (len(results))) 
-
         again = input("Do you want to make another query? y/n: ").lower()
 
     database1.close()
