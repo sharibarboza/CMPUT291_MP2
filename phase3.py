@@ -54,7 +54,6 @@ class LinkedList:
         term1 = term1[:-1] if is_partial(term1) else term1
         current = self.head
         previous = None
-        new_node = Node(data, current)
 
         # Search for a position to insert
         while current != None:
@@ -73,7 +72,8 @@ class LinkedList:
             previous = current
             current = current.get_next() 
         
-        # Insert node before current node 
+        # Insert node before current node
+        new_node = Node(data, current) 
         if previous is None:
             self.head = new_node            
         else:
@@ -233,7 +233,7 @@ class Query:
         """Match tweet records to term queries with the prefix location:, name:,
         or text: or to all of them if term query has no prefix
         """
-        if len(term) > 0 and term[-1] == '%':
+        if is_partial(term): 
             partial = True
             term = term[:-1]
         else:
