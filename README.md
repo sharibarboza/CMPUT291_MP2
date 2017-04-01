@@ -21,7 +21,7 @@ python3 phase2.py
 #### Phase 3: Data Retrieval
 Query the database, retrieve and output the results
 ```
-python3 main.py
+python3 phase3.py 
 ```
 
 ---
