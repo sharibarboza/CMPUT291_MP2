@@ -71,16 +71,9 @@ class LinkedList:
         """Get the first node in the linked list"""
         return self.head
 
-    def print_list(self):
-        current = self.head
-      
-        while current != None:
-            data = current.get_data()
-            print(data)
-            current = current.get_next()
-
 
 def both_terms(prefix1, prefix2):
+    """Return True if both prefixes are not date prefixes"""
     both = True
     if prefix1 and 'date' in prefix1:
         both = False
@@ -121,7 +114,6 @@ class Query:
         self.linked_list = LinkedList()
         self.results = None 
         self.sort_terms()
-        self.linked_list.print_list()
 
     #---------------------------------------------------------------------------
 
@@ -362,12 +354,14 @@ class Query:
 
 
 def is_partial(term):
+    """Return True if term is querying a partial match"""
     if len(term) > 0:
         return term[-1] in ['%', 37]
     else:
         return False
 
 def display_record(tw_db, tw_id):
+    """Display tweet record to console"""
     curs = tw_db.cursor()
     record = curs.set(tw_id)[1].decode('utf-8')
     curs.close()
