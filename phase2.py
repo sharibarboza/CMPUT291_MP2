@@ -36,10 +36,13 @@ for file in infiles:
 
 # Create indexes in Berekley DB
 os.system('db_load -f tweets.txt -T -t hash tw.idx')
+print("Loaded database into tw.idx.")
 #os.system('db_dump -p tw.idx')
 
 os.system('db_load -f terms.txt -c duplicates=1 -T -t btree te.idx')
+print("Loaded database into te.idx.")
 #os.system('db_dump -p te.idx')
   
 os.system('db_load -f dates.txt -c duplicates=1 -T -t btree da.idx')
+print("Loaded database into da.idx.")
 #os.system('db_dump -p da.idx')
