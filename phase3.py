@@ -54,7 +54,6 @@ class LinkedList:
         term1 = term1[:-1] if is_partial(term1) else term1
         current = self.head
         previous = None
-        new_node = Node(data, current)
 
         # Search for a position to insert
         while current != None:
@@ -66,8 +65,13 @@ class LinkedList:
  
             # Check if term to be inserted is longer
             both = both_terms(prefix1, prefix2)
-            if both and code1 < code2 and (len(term1) - len(term2) > 0):
-                break 
+            diff = len(term1) - len(term2)
+            if both and diff > 0: 
+                break
+            elif both and diff == 0 and code1 < code2:
+                break
+            elif not both and code1 < code2:
+                break
            
             # Term not inserted here, so get next node 
             previous = current
@@ -84,6 +88,7 @@ class LinkedList:
 
 class Query:
     """
+    query           ::= expression | (expession whitespace)+
     alphanumeric    ::= [0-9a-zA-Z_]
     date            ::= year '/' month '/' day
     datePrefix      ::= 'date' (':' | '>' | '<')
@@ -93,7 +98,6 @@ class Query:
     termPattern     ::= alphanumeric '%'
     termQuery       ::= termPrefix? (term | termPattern)
     expression      ::= termQuery | dateQuery
-    query           ::= expression | (expression whitespace)+
     """
     
     def __init__(self, dates_db, terms_db, query):
@@ -147,7 +151,8 @@ class Query:
             if self.results and len(self.results) == 0:
                 break 
             current = current.get_next()
-        return sorted(self.results) if self.results else []
+
+        return self.results if self.results else [] 
 
     #---------------------------------------------------------------------------
 
@@ -217,15 +222,15 @@ class Query:
         :param mid: either None, :, <, or >
         :param partial: True if mid is < or >
         """
-        code = 10
+        code = 7 
         if prefix == 'date':
-            code = 8 if mid == ':' else 9
+            code = 3 if mid == ':' else 8
         elif prefix == 'name':
-            code = 5 if partial else 1
+            code = 4 if partial else 0
         elif prefix == 'location':
-            code = 6 if partial else 2
+            code = 5 if partial else 1
         elif prefix == 'text':
-            code = 7 if partial else 3 
+            code = 6 if partial else 2 
         return code 
         
     #---------------------------------------------------------------------------
@@ -402,7 +407,7 @@ def main():
         # Parse the query and return tweet records that match query
         q = Query(database1, database2, query)
         results = q.get_results()
-    
+
         # Output the results
         border = '-' * 100 
         for result in results:
