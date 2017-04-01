@@ -8,7 +8,6 @@ class Node:
 
     def __init__(self, data=None, next_node=None):
         """Node object for linked list
-
         :param data: dictionary containing term query data 
         :param next_node: what current node is pointing to
         """
@@ -147,7 +146,6 @@ class Query:
             if self.results and len(self.results) == 0:
                 break 
             current = current.get_next()
-
         return sorted(self.results) if self.results else []
 
     #---------------------------------------------------------------------------
@@ -265,7 +263,6 @@ class Query:
             query = prefixes[i] + term
             results = self.match_query(self.terms_db, query, partial)
             matches.update(results)
-
         return matches
 
     #---------------------------------------------------------------------------
@@ -296,7 +293,6 @@ class Query:
             else:
                 iter = curs.next_dup()
         curs.close()
-
         return matches
 
     #---------------------------------------------------------------------------
@@ -335,7 +331,6 @@ class Query:
                 break 
             matches.add(iter[1])
             iter = curs1.next()
-
         curs1.close()
         return matches 
 
