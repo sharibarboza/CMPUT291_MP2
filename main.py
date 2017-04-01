@@ -39,20 +39,27 @@ class LinkedList:
         code values.
         :param data: dictionary with query term code
         """
-        code = data['code']
+        code1 = data['code']
+        prefix1 = data['prefix']
+        term1 = data['term']
+        term1 = term1[:-1] if is_partial(term1) else term1
+
         current = self.head
         previous = None
 
         while current != None:
             cur_data = current.get_data()
-            other_code = cur_data['code']
+            code2 = cur_data['code']
+            prefix2 = cur_data['prefix']
+            term2 = cur_data['term']
+            term2 = term2[:-1] if is_partial(term2) else term2
 
-            # Insert new node before node with higher code value
-            if code <= other_code:
-                break
-            else: 
-                previous = current
-                current = current.get_next() 
+            both = both_terms(prefix1, prefix2)
+            if both and code1 < code2 and (len(term1) - len(term2) > 0):
+                break 
+            
+            previous = current
+            current = current.get_next() 
          
         new_node = Node(data, current)
         if previous is None:
@@ -62,7 +69,24 @@ class LinkedList:
 
     def get_head(self):
         """Get the first node in the linked list"""
-        return self.head 
+        return self.head
+
+    def print_list(self):
+        current = self.head
+      
+        while current != None:
+            data = current.get_data()
+            print(data)
+            current = current.get_next()
+
+
+def both_terms(prefix1, prefix2):
+    both = True
+    if prefix1 and 'date' in prefix1:
+        both = False
+    if prefix2 and 'date' in prefix2:
+        both = False
+    return both 
 
 
 class Query:
@@ -97,6 +121,7 @@ class Query:
         self.linked_list = LinkedList()
         self.results = None 
         self.sort_terms()
+        self.linked_list.print_list()
 
     #---------------------------------------------------------------------------
 
@@ -142,13 +167,9 @@ class Query:
         Term order is maintained by storing each term in a linked list.
         """
         for term in self.terms:
-            if len(term) > 0 and term[-1] == '%':
-                partial = True
-            else:
-                partial = False
-
-            mid = self.find_separator(term)
             prefix = None
+            partial = is_partial(term)
+            mid = self.find_separator(term)
             word = term
 
             if mid:
@@ -203,28 +224,13 @@ class Query:
         """
         code = 10
         if prefix == 'date':
-            if mid == ':':
-                code = 4 
-            else:
-                code = 9
-        elif partial:
-            if prefix == 'name':
-                code = 6
-            elif prefix == 'location':
-                code = 7
-            elif prefix == 'text':
-                code = 8
-            else:
-                code = 10
-        else:
-            if prefix == 'name':
-                code = 1
-            elif prefix == 'location':
-                code = 2
-            elif prefix == 'text':
-                code = 3
-            else:
-                code = 5
+            code = 8 if mid == ':' else 9
+        elif prefix == 'name':
+            code = 5 if partial else 1
+        elif prefix == 'location':
+            code = 6 if partial else 2
+        elif prefix == 'text':
+            code = 7 if partial else 3 
         return code 
         
     #---------------------------------------------------------------------------
@@ -334,7 +340,7 @@ class Query:
         curs1 = self.dates_db.cursor()
         matches = set()
         date = date.encode('utf-8')
-        curs1.set_range(date)
+        start = curs1.set_range(date)
 
         # Determine which index to start iterating at
         if mid == '<':
@@ -343,7 +349,7 @@ class Query:
             iter = curs1.next_nodup()
 
         # Iterate until the query date or the end of database
-        while iter: 
+        while start and iter:
             if mid == '<' and iter[0] >= date:
                 break 
             matches.add(iter[1])
@@ -354,6 +360,12 @@ class Query:
 
     #---------------------------------------------------------------------------
 
+
+def is_partial(term):
+    if len(term) > 0:
+        return term[-1] in ['%', 37]
+    else:
+        return False
 
 def display_record(tw_db, tw_id):
     curs = tw_db.cursor()
