@@ -299,6 +299,8 @@ class Query:
             else:
                 iter = curs.next_dup()
         curs.close()
+
+        # Return results returned from the Berkeley database
         return matches
 
     #---------------------------------------------------------------------------
@@ -326,18 +328,22 @@ class Query:
         start = curs1.set_range(date)
 
         # Determine which index to start iterating at
+        if start is None and mid == '>':
+            return matches
         if mid == '<':
             iter = curs1.first()
         else: 
             iter = curs1.next_nodup()
 
         # Iterate until the query date or the end of database
-        while start and iter:
+        while iter:
             if mid == '<' and iter[0] >= date:
                 break 
             matches.add(iter[1])
             iter = curs1.next()
         curs1.close()
+
+        # Return results returned from the Berkeley database
         return matches 
 
 
